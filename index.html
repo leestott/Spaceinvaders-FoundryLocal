@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Invaders - AI Commander Edition</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="game-wrapper">
+        <!-- Header with game title and stats -->
+        <header class="game-header">
+            <h1 class="game-title">SPACE INVADERS</h1>
+            <p class="game-subtitle">AI Commander Edition</p>
+        </header>
+
+        <!-- Main game container -->
+        <div class="game-container">
+            <!-- Game canvas -->
+            <canvas id="gameCanvas" width="600" height="500"></canvas>
+            
+            <!-- HUD overlay -->
+            <div class="hud">
+                <div class="hud-item">
+                    <span class="hud-label">SCORE</span>
+                    <span id="score" class="hud-value">0</span>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">HIGH</span>
+                    <span id="highScore" class="hud-value high-score">0</span>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">LIVES</span>
+                    <span id="lives" class="hud-value">3</span>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">LEVEL</span>
+                    <span id="level" class="hud-value">1</span>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">WEAPON</span>
+                    <span id="currentWeapon" class="hud-value weapon-display">BASIC</span>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">AI</span>
+                    <span id="aiStatus" class="hud-value ai-status">OFFLINE</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Commander Console -->
+        <div class="ai-console">
+            <div class="console-header">
+                <span class="console-icon">⬢</span>
+                <span class="console-title">AI COMMANDER</span>
+                <span id="aiThinking" class="thinking-indicator"></span>
+            </div>
+            <div id="aiConsole" class="console-content">
+                <p class="console-message system-message">
+                    &gt; Initializing AI Commander systems...
+                </p>
+            </div>
+        </div>
+
+        <!-- Game controls info -->
+        <div class="controls-info">
+            <span>← → MOVE</span>
+            <span>SPACE FIRE</span>
+            <span>P PAUSE</span>
+            <span>R RESTART</span>
+            <span id="soundToggleBtn" class="sound-btn">🔊 SOUND</span>
+            <span id="showLeaderboardBtn" class="leaderboard-btn">🏆 SCORES</span>
+        </div>
+
+        <!-- Start screen overlay -->
+        <div id="startScreen" class="overlay">
+            <div class="overlay-content">
+                <h2>SPACE INVADERS</h2>
+                <p class="subtitle">AI Commander Edition</p>
+                <div class="instructions">
+                    <p>Defend Earth from alien invaders!</p>
+                    <p>← → to move, SPACE to fire</p>
+                </div>
+                <button id="startBtn" class="arcade-btn">START GAME</button>
+                <div class="ai-note">
+                    <p>⬢ Just play! AI features are optional.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game over overlay -->
+        <div id="gameOverScreen" class="overlay hidden">
+            <div class="overlay-content">
+                <h2>GAME OVER</h2>
+                <p id="finalScore" class="final-score">SCORE: 0</p>
+                <p id="aiComment" class="ai-comment"></p>
+                <div id="nameInput" class="name-input-section">
+                    <label for="playerName">ENTER YOUR NAME:</label>
+                    <input type="text" id="playerName" maxlength="10" placeholder="PILOT">
+                    <button id="saveScoreBtn" class="arcade-btn small">SAVE SCORE</button>
+                </div>
+                <button id="restartBtn" class="arcade-btn">PLAY AGAIN</button>
+            </div>
+        </div>
+
+        <!-- Leaderboard overlay -->
+        <div id="leaderboardScreen" class="overlay hidden">
+            <div class="overlay-content leaderboard-content">
+                <h2>LEADERBOARD</h2>
+                <div id="leaderboardList" class="leaderboard-list">
+                    <p class="no-scores">No scores yet!</p>
+                </div>
+                <button id="closeLeaderboardBtn" class="arcade-btn">CLOSE</button>
+            </div>
+        </div>
+
+        <!-- Level complete overlay -->
+        <div id="levelCompleteScreen" class="overlay hidden">
+            <div class="overlay-content">
+                <h2>LEVEL COMPLETE</h2>
+                <p id="levelScore" class="level-score">SCORE: 0</p>
+                <p id="levelBriefing" class="level-briefing"></p>
+                <button id="nextLevelBtn" class="arcade-btn">NEXT LEVEL</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load scripts as ES modules -->
+    <script type="module" src="game.js"></script>
+</body>
+</html>

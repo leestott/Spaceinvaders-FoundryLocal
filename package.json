@@ -1,0 +1,24 @@
+{
+  "name": "space-invaders-ai-commander",
+  "version": "1.0.0",
+  "description": "Space Invaders game with Microsoft Foundry Local AI Commander",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "space-invaders",
+    "game",
+    "foundry-local",
+    "ai",
+    "llm"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "foundry-local-sdk": "^0.3.0",
+    "openai": "^4.0.0"
+  }
+}

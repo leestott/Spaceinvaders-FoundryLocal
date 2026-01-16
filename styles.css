@@ -1,0 +1,619 @@
+/* ===========================================
+   SPACE INVADERS - AI COMMANDER EDITION
+   Retro Arcade Styling
+   =========================================== */
+
+/* Import retro-style font */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+/* CSS Variables for consistent theming */
+:root {
+    --primary-color: #00ff41;       /* Classic green terminal color */
+    --secondary-color: #ff6b35;     /* Orange accent */
+    --warning-color: #ff0040;       /* Red warning */
+    --background-dark: #0a0a0a;     /* Near black */
+    --background-panel: #121212;    /* Panel background */
+    --border-color: #00ff41;        /* Green borders */
+    --text-dim: #006618;            /* Dimmed green text */
+    --console-bg: #0d1117;          /* Console background */
+    --glow-color: rgba(0, 255, 65, 0.3);
+}
+
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Press Start 2P', cursive;
+    background-color: var(--background-dark);
+    color: var(--primary-color);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    overflow-x: hidden;
+}
+
+/* Scanline effect overlay */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.15),
+        rgba(0, 0, 0, 0.15) 1px,
+        transparent 1px,
+        transparent 2px
+    );
+    pointer-events: none;
+    z-index: 1000;
+}
+
+/* Main game wrapper */
+.game-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    max-width: 700px;
+    width: 100%;
+}
+
+/* Game header */
+.game-header {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.game-title {
+    font-size: 2rem;
+    text-shadow: 
+        0 0 10px var(--primary-color),
+        0 0 20px var(--primary-color),
+        0 0 40px var(--primary-color);
+    animation: flicker 2s infinite alternate;
+    letter-spacing: 4px;
+}
+
+.game-subtitle {
+    font-size: 0.6rem;
+    color: var(--secondary-color);
+    margin-top: 8px;
+    letter-spacing: 2px;
+}
+
+/* Flicker animation for title */
+@keyframes flicker {
+    0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+        text-shadow: 
+            0 0 10px var(--primary-color),
+            0 0 20px var(--primary-color),
+            0 0 40px var(--primary-color);
+    }
+    20%, 24%, 55% {
+        text-shadow: none;
+    }
+}
+
+/* Game container */
+.game-container {
+    position: relative;
+    border: 3px solid var(--border-color);
+    box-shadow: 
+        0 0 20px var(--glow-color),
+        inset 0 0 20px rgba(0, 255, 65, 0.1);
+    background-color: #000;
+}
+
+/* Canvas styling */
+#gameCanvas {
+    display: block;
+    background: radial-gradient(ellipse at center, #0a0a1a 0%, #000 100%);
+}
+
+/* HUD (Heads Up Display) */
+.hud {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-around;
+    padding: 10px;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent);
+    font-size: 0.5rem;
+}
+
+.hud-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.hud-label {
+    color: var(--text-dim);
+    font-size: 0.4rem;
+}
+
+.hud-value {
+    font-size: 0.7rem;
+    text-shadow: 0 0 5px var(--primary-color);
+}
+
+.ai-status {
+    font-size: 0.5rem;
+}
+
+.ai-status.online {
+    color: var(--primary-color);
+    animation: pulse 1.5s infinite;
+}
+
+.ai-status.offline {
+    color: var(--warning-color);
+}
+
+.ai-status.loading {
+    color: var(--secondary-color);
+}
+
+.high-score {
+    color: var(--secondary-color);
+}
+
+.weapon-display {
+    font-size: 0.45rem;
+    color: #00bfff;
+}
+
+.weapon-display.spread {
+    color: #ff6b35;
+}
+
+.weapon-display.laser {
+    color: #ff0040;
+}
+
+.weapon-display.rapid {
+    color: #ffdd00;
+}
+
+.weapon-display.missile {
+    color: #ff00ff;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* AI Console Panel */
+.ai-console {
+    width: 100%;
+    max-width: 606px;
+    background-color: var(--console-bg);
+    border: 2px solid var(--border-color);
+    box-shadow: 0 0 15px var(--glow-color);
+}
+
+.console-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background-color: rgba(0, 255, 65, 0.1);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.5rem;
+}
+
+.console-icon {
+    color: var(--secondary-color);
+    animation: rotate 4s linear infinite;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.console-title {
+    flex: 1;
+    letter-spacing: 2px;
+}
+
+.thinking-indicator {
+    font-size: 0.4rem;
+    color: var(--secondary-color);
+}
+
+.thinking-indicator.active::after {
+    content: 'PROCESSING...';
+    animation: blink 0.5s infinite;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+.console-content {
+    height: 120px;
+    overflow-y: auto;
+    padding: 10px;
+    font-size: 0.45rem;
+    line-height: 1.8;
+}
+
+.console-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.console-content::-webkit-scrollbar-track {
+    background: var(--background-dark);
+}
+
+.console-content::-webkit-scrollbar-thumb {
+    background: var(--text-dim);
+    border-radius: 4px;
+}
+
+.console-message {
+    margin-bottom: 8px;
+    padding-left: 15px;
+    position: relative;
+    word-wrap: break-word;
+}
+
+.console-message::before {
+    content: '>';
+    position: absolute;
+    left: 0;
+    color: var(--primary-color);
+}
+
+.system-message {
+    color: var(--text-dim);
+}
+
+.taunt-message {
+    color: var(--warning-color);
+}
+
+.briefing-message {
+    color: var(--secondary-color);
+}
+
+.commander-message {
+    color: var(--primary-color);
+}
+
+.hint-message {
+    color: #00bfff;
+}
+
+/* Controls info bar */
+.controls-info {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    font-size: 0.4rem;
+    color: var(--text-dim);
+    padding: 10px;
+}
+
+.controls-info span {
+    transition: color 0.2s;
+}
+
+.controls-info span:hover {
+    color: var(--primary-color);
+}
+
+/* Overlay screens */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    animation: fadeIn 0.3s ease;
+}
+
+.overlay.hidden {
+    display: none;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.overlay-content {
+    text-align: center;
+    padding: 40px;
+    border: 3px solid var(--primary-color);
+    background-color: var(--background-panel);
+    box-shadow: 
+        0 0 30px var(--glow-color),
+        inset 0 0 50px rgba(0, 255, 65, 0.05);
+    max-width: 450px;
+}
+
+.overlay-content h2 {
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+    text-shadow: 0 0 20px var(--primary-color);
+    animation: flicker 3s infinite alternate;
+}
+
+.overlay-content .subtitle {
+    font-size: 0.6rem;
+    color: var(--secondary-color);
+    margin-bottom: 25px;
+}
+
+.instructions {
+    font-size: 0.5rem;
+    line-height: 2;
+    margin-bottom: 30px;
+    color: #aaa;
+}
+
+.instructions p {
+    margin-bottom: 10px;
+}
+
+/* Arcade button styling */
+.arcade-btn {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 0.7rem;
+    padding: 15px 30px;
+    background-color: transparent;
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.arcade-btn:hover {
+    background-color: var(--primary-color);
+    color: var(--background-dark);
+    box-shadow: 
+        0 0 20px var(--primary-color),
+        inset 0 0 20px rgba(255, 255, 255, 0.2);
+    transform: scale(1.05);
+}
+
+.arcade-btn:active {
+    transform: scale(0.95);
+}
+
+.ai-note {
+    margin-top: 25px;
+    font-size: 0.35rem;
+    color: var(--text-dim);
+}
+
+.ai-note p {
+    margin-top: 5px;
+}
+
+/* Final score display */
+.final-score, .level-score {
+    font-size: 1rem;
+    margin-bottom: 20px;
+    color: var(--secondary-color);
+}
+
+.ai-comment, .level-briefing {
+    font-size: 0.45rem;
+    line-height: 1.8;
+    margin-bottom: 25px;
+    color: var(--primary-color);
+    max-width: 350px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Leaderboard Styles */
+.leaderboard-content {
+    min-width: 350px;
+}
+
+.leaderboard-list {
+    margin: 20px 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.leaderboard-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 15px;
+    margin: 5px 0;
+    background: rgba(0, 255, 65, 0.1);
+    border-left: 3px solid var(--primary-color);
+    font-size: 0.5rem;
+}
+
+.leaderboard-entry.highlight {
+    background: rgba(255, 107, 53, 0.2);
+    border-left-color: var(--secondary-color);
+}
+
+.leaderboard-rank {
+    color: var(--secondary-color);
+    min-width: 30px;
+}
+
+.leaderboard-name {
+    flex: 1;
+    text-align: left;
+    margin: 0 15px;
+    color: var(--primary-color);
+}
+
+.leaderboard-score {
+    color: var(--primary-color);
+    min-width: 60px;
+    text-align: right;
+}
+
+.leaderboard-level {
+    color: var(--text-dim);
+    min-width: 40px;
+    text-align: right;
+    font-size: 0.4rem;
+}
+
+.no-scores {
+    color: var(--text-dim);
+    font-size: 0.5rem;
+    padding: 20px;
+}
+
+/* Name input section */
+.name-input-section {
+    margin: 20px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+}
+
+.name-input-section label {
+    font-size: 0.45rem;
+    color: var(--text-dim);
+}
+
+.name-input-section input {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 0.6rem;
+    padding: 10px 15px;
+    background: var(--background-dark);
+    border: 2px solid var(--primary-color);
+    color: var(--primary-color);
+    text-align: center;
+    text-transform: uppercase;
+    width: 150px;
+}
+
+.name-input-section input:focus {
+    outline: none;
+    box-shadow: 0 0 10px var(--glow-color);
+}
+
+.name-input-section input::placeholder {
+    color: var(--text-dim);
+}
+
+.arcade-btn.small {
+    font-size: 0.5rem;
+    padding: 10px 20px;
+}
+
+.leaderboard-btn {
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.leaderboard-btn:hover {
+    color: var(--secondary-color) !important;
+}
+
+.sound-btn {
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.sound-btn:hover {
+    color: var(--secondary-color) !important;
+}
+
+.sound-btn.muted {
+    color: var(--warning-color) !important;
+}
+
+.name-input-section.hidden {
+    display: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 650px) {
+    .game-title {
+        font-size: 1.2rem;
+    }
+    
+    #gameCanvas {
+        width: 100%;
+        height: auto;
+    }
+    
+    .game-container {
+        width: 100%;
+    }
+    
+    .hud {
+        font-size: 0.4rem;
+    }
+    
+    .console-content {
+        height: 100px;
+        font-size: 0.4rem;
+    }
+    
+    .controls-info {
+        font-size: 0.35rem;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+    
+    .overlay-content {
+        padding: 25px;
+        margin: 20px;
+    }
+    
+    .overlay-content h2 {
+        font-size: 1rem;
+    }
+}
+
+/* CRT screen effect (optional enhancement) */
+.game-container::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        rgba(18, 16, 16, 0) 50%,
+        rgba(0, 0, 0, 0.25) 50%
+    );
+    background-size: 100% 4px;
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* Stars background animation */
+@keyframes twinkle {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+}
