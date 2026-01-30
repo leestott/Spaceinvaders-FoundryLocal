@@ -9,6 +9,9 @@ sound effects, and optional AI-powered features.
 
 The game works immediately in any modern browser. No installation needed.
 
+![SpaceInvader](/images/Spaceinvaders.png)
+
+
 ---
 
 ## ✨ Features
