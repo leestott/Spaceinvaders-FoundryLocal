@@ -64,6 +64,21 @@ let isInitialized = false;
 // Initialize Foundry Local
 // ============================================
 
+/**
+ * Renders a CLI progress bar for model download.
+ * @param {number} progress - Download progress percentage (0-100).
+ */
+function renderProgressBar(progress) {
+    const barWidth = 30;
+    const filled = Math.round((progress / 100) * barWidth);
+    const empty = barWidth - filled;
+    const bar = '█'.repeat(filled) + '░'.repeat(empty);
+    process.stdout.write(`\r[Server] Downloading: [${bar}] ${progress.toFixed(1)}%`);
+    if (progress >= 100) {
+        process.stdout.write('\n');
+    }
+}
+
 async function initializeFoundry() {
     if (isInitialized) return true;
     
@@ -73,12 +88,29 @@ async function initializeFoundry() {
         // Create Foundry Local Manager
         foundryManager = new FoundryLocalManager();
         
-        // Initialize with model alias - this will:
-        // 1. Start the Foundry Local service if not running
-        // 2. Download the model if not cached
-        // 3. Return model info
-        console.log(`[Server] Loading model: ${CONFIG.modelAlias}`);
-        modelInfo = await foundryManager.init(CONFIG.modelAlias);
+        // Step 1: Start the Foundry Local service
+        console.log('[Server] Starting Foundry Local service...');
+        await foundryManager.startService();
+        
+        // Step 2: Check if model is already downloaded
+        const cachedModels = await foundryManager.listCachedModels();
+        const catalogInfo = await foundryManager.getModelInfo(CONFIG.modelAlias);
+        const isAlreadyCached = cachedModels.some(m => m.id === catalogInfo?.id);
+        
+        // Step 3: Download model if needed (with progress), or skip
+        if (isAlreadyCached) {
+            console.log(`[Server] Model already downloaded: ${CONFIG.modelAlias}`);
+        } else {
+            console.log(`[Server] Downloading model: ${CONFIG.modelAlias} (this may take several minutes)...`);
+            await foundryManager.downloadModel(CONFIG.modelAlias, undefined, false, (progress) => {
+                renderProgressBar(progress);
+            });
+            console.log(`[Server] Download complete: ${CONFIG.modelAlias}`);
+        }
+        
+        // Step 4: Load the model into memory
+        console.log(`[Server] Loading model: ${CONFIG.modelAlias}...`);
+        modelInfo = await foundryManager.loadModel(CONFIG.modelAlias);
         console.log('[Server] Model loaded:', modelInfo.id);
         
         // Create OpenAI client pointing to local Foundry service
