@@ -1055,8 +1055,57 @@ function updateHUD() {
 }
 
 function updateAIStatus(status) {
-    aiStatusDisplay.textContent = status.toUpperCase();
-    aiStatusDisplay.className = `hud-value ai-status ${status}`;
+    // Map internal states to display states
+    let displayStatus = status;
+    if (status === 'downloading' || status === 'loading' || status === 'initializing') {
+        displayStatus = 'loading';
+    }
+    aiStatusDisplay.textContent = displayStatus.toUpperCase();
+    aiStatusDisplay.className = `hud-value ai-status ${displayStatus}`;
+}
+
+function updateDownloadProgress(progress) {
+    // Show download progress in the AI console
+    if (progress.state === 'downloading') {
+        // Update or create progress message
+        let progressMsg = document.getElementById('download-progress-msg');
+        if (!progressMsg) {
+            progressMsg = document.createElement('p');
+            progressMsg.id = 'download-progress-msg';
+            progressMsg.className = 'console-message system-message';
+            aiConsole.appendChild(progressMsg);
+        }
+        
+        // Create progress bar visualization
+        const barWidth = 20;
+        const filled = Math.round((progress.progress / 100) * barWidth);
+        const empty = barWidth - filled;
+        const bar = '█'.repeat(filled) + '░'.repeat(empty);
+        
+        progressMsg.innerHTML = `&gt; Downloading AI Model...<br>&gt; [${bar}] ${progress.progress.toFixed(1)}%<br>&gt; ${progress.modelAlias || 'model'}`;
+        aiConsole.scrollTop = aiConsole.scrollHeight;
+    } else if (progress.state === 'loading') {
+        let progressMsg = document.getElementById('download-progress-msg');
+        if (!progressMsg) {
+            progressMsg = document.createElement('p');
+            progressMsg.id = 'download-progress-msg';
+            progressMsg.className = 'console-message system-message';
+            aiConsole.appendChild(progressMsg);
+        }
+        progressMsg.innerHTML = `&gt; Loading AI model into memory...<br>&gt; Please wait...`;
+        aiConsole.scrollTop = aiConsole.scrollHeight;
+    } else if (progress.state === 'ready') {
+        // Remove progress message and show ready
+        const progressMsg = document.getElementById('download-progress-msg');
+        if (progressMsg) {
+            progressMsg.remove();
+        }
+    } else if (progress.state === 'error') {
+        const progressMsg = document.getElementById('download-progress-msg');
+        if (progressMsg) {
+            progressMsg.innerHTML = `&gt; <span style="color:#ff6b6b">AI initialization failed</span><br>&gt; Running in offline mode`;
+        }
+    }
 }
 
 function addConsoleMessage(message, type = 'system') {
@@ -1250,6 +1299,7 @@ async function initGame() {
     
     // Initialize LLM (optional - game works without it)
     llmManager.onStatusChange(updateAIStatus);
+    llmManager.onDownloadProgress(updateDownloadProgress);
     const llmAvailable = await llmManager.initialize();
     
     if (llmAvailable) {

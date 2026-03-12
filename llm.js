@@ -214,6 +214,7 @@ class LLMManager {
         this.cache = new PromptCache(LLM_CONFIG.cacheMaxSize, LLM_CONFIG.cacheTTL);
         this.pendingRequests = new Map();
         this.statusCallback = null;
+        this.downloadCallback = null;
     }
     
     /**
@@ -224,12 +225,43 @@ class LLMManager {
     }
     
     /**
+     * Set callback for download progress updates
+     */
+    onDownloadProgress(callback) {
+        this.downloadCallback = callback;
+    }
+    
+    /**
      * Update status and notify listeners
      */
     updateStatus(status) {
         if (this.statusCallback) {
             this.statusCallback(status);
         }
+    }
+    
+    /**
+     * Update download progress and notify listeners
+     */
+    updateDownloadProgress(progress) {
+        if (this.downloadCallback) {
+            this.downloadCallback(progress);
+        }
+    }
+    
+    /**
+     * Poll the server status endpoint for initialization progress
+     */
+    async pollServerStatus() {
+        try {
+            const response = await fetch('http://localhost:3001/status');
+            if (response.ok) {
+                return await response.json();
+            }
+        } catch (error) {
+            // Server not available
+        }
+        return null;
     }
     
     /**
@@ -247,20 +279,48 @@ class LLMManager {
         console.log('[LLM] Checking for AI Commander server...');
         
         try {
-            // Try to connect to local proxy server (optional)
-            const proxyAvailable = await this.checkLocalProxy();
-            if (proxyAvailable) {
-                this.isInitialized = true;
-                this.isAvailable = true;
-                this.updateStatus('online');
-                console.log('[LLM] ✓ Connected to Foundry Local AI');
-                return true;
+            // Check if server is available
+            const serverAvailable = await this.checkLocalProxy();
+            
+            if (serverAvailable) {
+                // Poll for status until ready or error
+                let status = await this.pollServerStatus();
+                
+                // If server is still initializing, poll until ready
+                while (status && (status.state === 'initializing' || status.state === 'downloading' || status.state === 'loading')) {
+                    this.updateStatus(status.state);
+                    this.updateDownloadProgress({
+                        state: status.state,
+                        progress: status.progress,
+                        message: status.message,
+                        modelAlias: status.modelAlias
+                    });
+                    
+                    console.log(`[LLM] ${status.message}`);
+                    
+                    // Wait before polling again
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    status = await this.pollServerStatus();
+                }
+                
+                if (status?.state === 'ready') {
+                    this.isInitialized = true;
+                    this.isAvailable = true;
+                    this.updateStatus('online');
+                    this.updateDownloadProgress({ state: 'ready', progress: 100, message: 'AI Commander ready!' });
+                    console.log('[LLM] ✓ Connected to Foundry Local AI');
+                    return true;
+                } else if (status?.state === 'error') {
+                    console.log('[LLM] Server initialization failed:', status.error);
+                    this.updateDownloadProgress({ state: 'error', message: status.message });
+                }
             }
         } catch (error) {
             // Silent fail - proxy is optional
+            console.log('[LLM] Could not connect to server:', error.message);
         }
         
-        // No proxy = standalone mode with fallback responses
+        // No proxy or server error = standalone mode with fallback responses
         console.log('[LLM] Running in standalone mode (no AI server)');
         console.log('[LLM] Tip: Run "npm start" for live AI features');
         this.isInitialized = true;

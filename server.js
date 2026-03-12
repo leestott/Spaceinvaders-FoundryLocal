@@ -4,19 +4,19 @@
  * ===========================================
  * 
  * This server acts as a bridge between the browser-based game
- * and the Microsoft Foundry Local SDK.
+ * and the Microsoft Foundry Local SDK (v0.9.0+).
  * 
  * Since browsers cannot directly use Node.js modules like the
  * Foundry Local SDK, this proxy server handles the LLM communication.
  * 
  * Prerequisites:
  * 1. Install Node.js (v18+)
- * 2. Install Foundry Local CLI: winget install Microsoft.FoundryLocal
- * 3. Run: npm install
- * 4. Run: node server.js
+ * 2. Run: npm install
+ * 3. Run: node server.js
+ * 
+ * The SDK will automatically manage the Foundry Local service.
  */
 
-import { OpenAI } from 'openai';
 import { FoundryLocalManager } from 'foundry-local-sdk';
 import http from 'http';
 import fs from 'fs';
@@ -56,9 +56,18 @@ const CONFIG = {
 // ============================================
 
 let foundryManager = null;
-let openaiClient = null;
-let modelInfo = null;
+let chatClient = null;
+let loadedModel = null;
 let isInitialized = false;
+
+// Download progress tracking for UI
+let initStatus = {
+    state: 'idle',           // idle, initializing, downloading, loading, ready, error
+    progress: 0,             // Download progress 0-100
+    message: '',             // Status message for UI
+    modelAlias: null,        // Model being loaded
+    error: null              // Error message if failed
+};
 
 // ============================================
 // Initialize Foundry Local
@@ -82,52 +91,82 @@ function renderProgressBar(progress) {
 async function initializeFoundry() {
     if (isInitialized) return true;
     
-    console.log('[Server] Initializing Foundry Local...');
+    initStatus.state = 'initializing';
+    initStatus.message = 'Starting Foundry Local SDK...';
+    initStatus.modelAlias = CONFIG.modelAlias;
+    
+    console.log('[Server] Initializing Foundry Local SDK v0.9.0...');
     
     try {
-        // Create Foundry Local Manager
-        foundryManager = new FoundryLocalManager();
+        // Step 1: Create Foundry Local Manager using the new SDK API
+        console.log('[Server] Creating Foundry Local Manager...');
+        initStatus.message = 'Creating Foundry Local Manager...';
+        foundryManager = FoundryLocalManager.create({
+            appName: 'space-invaders-ai-commander',
+            logLevel: 'info'
+        });
         
-        // Step 1: Start the Foundry Local service
-        console.log('[Server] Starting Foundry Local service...');
-        await foundryManager.startService();
+        // Step 2: Access the catalog and find our model (async in v0.9.0)
+        console.log(`[Server] Looking for model: ${CONFIG.modelAlias}...`);
+        initStatus.message = `Looking for model: ${CONFIG.modelAlias}...`;
+        const catalog = foundryManager.catalog;
+        const model = await catalog.getModel(CONFIG.modelAlias);
         
-        // Step 2: Check if model is already downloaded
-        const cachedModels = await foundryManager.listCachedModels();
-        const catalogInfo = await foundryManager.getModelInfo(CONFIG.modelAlias);
-        const isAlreadyCached = cachedModels.some(m => m.id === catalogInfo?.id);
+        if (!model) {
+            throw new Error(`Model "${CONFIG.modelAlias}" not found in catalog`);
+        }
         
-        // Step 3: Download model if needed (with progress), or skip
-        if (isAlreadyCached) {
-            console.log(`[Server] Model already downloaded: ${CONFIG.modelAlias}`);
-        } else {
+        console.log(`[Server] Found model: ${model.alias}`);
+        
+        // Step 3: Check if model is cached, download if needed
+        if (!model.isCached) {
+            initStatus.state = 'downloading';
+            initStatus.progress = 0;
+            initStatus.message = `Downloading ${CONFIG.modelAlias}... This may take several minutes.`;
             console.log(`[Server] Downloading model: ${CONFIG.modelAlias} (this may take several minutes)...`);
-            await foundryManager.downloadModel(CONFIG.modelAlias, undefined, false, (progress) => {
+            
+            // Download with progress callback
+            await model.download((progress) => {
+                initStatus.progress = progress;
+                initStatus.message = `Downloading ${CONFIG.modelAlias}... ${progress.toFixed(1)}%`;
                 renderProgressBar(progress);
             });
+            
+            initStatus.progress = 100;
             console.log(`[Server] Download complete: ${CONFIG.modelAlias}`);
+        } else {
+            console.log(`[Server] Model already cached: ${CONFIG.modelAlias}`);
         }
         
         // Step 4: Load the model into memory
+        initStatus.state = 'loading';
+        initStatus.message = `Loading ${CONFIG.modelAlias} into memory...`;
         console.log(`[Server] Loading model: ${CONFIG.modelAlias}...`);
-        modelInfo = await foundryManager.loadModel(CONFIG.modelAlias);
-        console.log('[Server] Model loaded:', modelInfo.id);
+        await model.load();
+        loadedModel = model;
         
-        // Create OpenAI client pointing to local Foundry service
-        openaiClient = new OpenAI({
-            baseURL: foundryManager.endpoint,
-            apiKey: foundryManager.apiKey || 'not-required'
-        });
+        // Step 5: Create chat client from the loaded model
+        console.log('[Server] Creating chat client...');
+        initStatus.message = 'Creating chat client...';
+        chatClient = model.createChatClient();
         
         isInitialized = true;
-        console.log('[Server] Foundry Local initialized successfully');
-        console.log(`[Server] Endpoint: ${foundryManager.endpoint}`);
+        initStatus.state = 'ready';
+        initStatus.message = 'AI Commander ready!';
+        console.log('[Server] Foundry Local SDK initialized successfully');
         
         return true;
     } catch (error) {
         console.error('[Server] Failed to initialize Foundry Local:', error.message);
-        console.error('[Server] Make sure Foundry Local is installed:');
-        console.error('         winget install Microsoft.FoundryLocal');
+        console.error('[Server] Troubleshooting tips:');
+        console.error('         - Ensure foundry-local-sdk is installed: npm install foundry-local-sdk');
+        console.error('         - Check that you have sufficient disk space for model download');
+        console.error('         - Try a different model alias if phi-3.5-mini is unavailable');
+        
+        initStatus.state = 'error';
+        initStatus.error = error.message;
+        initStatus.message = `Failed: ${error.message}`;
+        
         return false;
     }
 }
@@ -137,7 +176,7 @@ async function initializeFoundry() {
 // ============================================
 
 async function handleChatCompletion(systemPrompt, userPrompt, options = {}) {
-    if (!isInitialized) {
+    if (!isInitialized || !chatClient) {
         throw new Error('Foundry Local not initialized');
     }
     
@@ -146,15 +185,11 @@ async function handleChatCompletion(systemPrompt, userPrompt, options = {}) {
         { role: 'user', content: userPrompt }
     ];
     
-    const completion = await openaiClient.chat.completions.create({
-        model: modelInfo.id,
-        messages: messages,
-        max_tokens: options.maxTokens || CONFIG.defaultMaxTokens,
-        temperature: options.temperature || CONFIG.defaultTemperature,
-        stream: false
-    });
+    // Use the new SDK's chat client API - minimal call without settings
+    // SDK 0.9.0 may have API changes that make settings optional
+    const response = await chatClient.completeChat(messages);
     
-    return completion.choices[0]?.message?.content || '';
+    return response.choices[0]?.message?.content || '';
 }
 
 // ============================================
@@ -162,7 +197,7 @@ async function handleChatCompletion(systemPrompt, userPrompt, options = {}) {
 // ============================================
 
 async function* handleStreamingChat(systemPrompt, userPrompt, options = {}) {
-    if (!isInitialized) {
+    if (!isInitialized || !chatClient) {
         throw new Error('Foundry Local not initialized');
     }
     
@@ -171,13 +206,8 @@ async function* handleStreamingChat(systemPrompt, userPrompt, options = {}) {
         { role: 'user', content: userPrompt }
     ];
     
-    const stream = await openaiClient.chat.completions.create({
-        model: modelInfo.id,
-        messages: messages,
-        max_tokens: options.maxTokens || CONFIG.defaultMaxTokens,
-        temperature: options.temperature || CONFIG.defaultTemperature,
-        stream: true
-    });
+    // Use the new SDK's streaming API without settings
+    const stream = await chatClient.completeChatStreaming(messages);
     
     for await (const chunk of stream) {
         if (chunk.choices[0]?.delta?.content) {
@@ -241,8 +271,16 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ 
             status: 'ok', 
             initialized: isInitialized,
-            model: modelInfo?.id || null
+            model: loadedModel?.alias || loadedModel?.id || null,
+            sdkVersion: '0.9.0'
         }));
+        return;
+    }
+    
+    // Status endpoint for UI - includes download progress
+    if (url.pathname === '/status' && req.method === 'GET') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(initStatus));
         return;
     }
     
@@ -338,7 +376,7 @@ const server = http.createServer(async (req, res) => {
 async function start() {
     console.log('========================================');
     console.log('  Space Invaders - AI Commander Server');
-    console.log('  Powered by Microsoft Foundry Local');
+    console.log('  Foundry Local SDK v0.9.0');
     console.log('========================================');
     console.log('');
     

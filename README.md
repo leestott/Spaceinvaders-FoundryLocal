@@ -1,13 +1,13 @@
 # Space Invaders - AI Commander Edition
 
-A retro-style Space Invaders browser game with power-ups, weapons, leaderboards, 
+A retro-style Space Invaders browser game featuring power-ups, weapons, leaderboards, 
 sound effects, and optional AI-powered features.
 
 ## 🎮 Play Now (No Setup Required!)
 
-**Just double-click `index.html`** and start playing!
+**Simply double-click `index.html`** and start playing!
 
-The game works immediately in any modern browser. No installation needed.
+The game works immediately in any modern browser. No installation is needed.
 
 ![SpaceInvader](/images/Spaceinvaders.png)
 
@@ -22,7 +22,7 @@ The game works immediately in any modern browser. No installation needed.
 - Retro pixel-art graphics with CRT effects
 
 ### 🔫 8 Power-Up Types
-| Power-Up | Color | Effect |
+| Power-Up | Colour | Effect |
 |----------|-------|--------|
 | **SPREAD** | 🟠 Orange | 3-way spread shot |
 | **LASER** | 🔴 Red | Powerful beam, high damage |
@@ -69,33 +69,23 @@ The game works immediately in any modern browser. No installation needed.
 
 ## 🤖 Optional: Enable AI Features
 
-Want dynamic AI-generated taunts and commentary? Follow these steps:
+Want dynamic AI-generated taunts and commentary? The game uses the **Foundry Local SDK v0.9.0** which handles everything automatically. No separate CLI installation is needed!
 
-### Windows
-```powershell
-# 1. Install Foundry Local (one-time)
-winget install Microsoft.FoundryLocal
-
-# 2. In the game folder, run:
-npm install
-npm start
-
-# 3. Open http://localhost:3001
-```
-
-### macOS
+### Windows / macOS / Linux
 ```bash
-# 1. Install Foundry Local (one-time)
-brew install microsoft/foundrylocal/foundrylocal
-
-# 2. In the game folder, run:
+# In the game folder, run:
 npm install
 npm start
 
-# 3. Open http://localhost:3001
+# Open http://localhost:3001
 ```
 
-When AI is enabled, you'll see **"AI: ONLINE"** in the game HUD.
+The SDK will automatically:
+- Download the AI model on first run (you will see a progress bar in the game)
+- Start the local inference service
+- Load the model into memory
+
+When AI is enabled, you will see **"AI: ONLINE"** in the game HUD.
 
 ---
 
@@ -127,10 +117,17 @@ Spaceinvaders/
 ## 🛠️ Technical Details
 
 - **No dependencies** for basic gameplay
-- **Web Audio API** for synthesized sound
+- **Foundry Local SDK v0.9.0** for AI features (optional)
+- **Web Audio API** for synthesised sound
 - **localStorage** for saving scores
 - **ES6 Modules** for clean code structure
 - **Canvas API** for rendering
+
+---
+
+## 📖 Developer Guide
+
+See [AGENTS.md](AGENTS.md) for coding patterns and SDK integration details.
 
 ---
 
